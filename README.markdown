@@ -1,7 +1,7 @@
 RegRu
 =====
 
-Ruby wrapper for reg.ru API. ( http://www.reg.ru/reseller/API2-tech )
+Ruby wrapper for reg.ru API. ( [reg.ru API](http://www.reg.ru/reseller/API2-tech "reg.ru API")  )
 
 Example
 =======
@@ -10,11 +10,9 @@ Specify your login and password:
 
 `@api = RegRu::Api.new('login', 'password')`
   or 
-`
     RegRu::Api.login = 'login'
     RegRu::Api.password = 'password'
     @api = RegRu::Api.new
-`
 
 Then you must set path to ca_cert.pem:
 
@@ -22,7 +20,6 @@ Then you must set path to ca_cert.pem:
 
 To register a domain, pass contacts info and other required data:
 
-`
      @api.domain_create(
      'period'              => 1,
      'domain_name'         => 'domain.ru',
@@ -42,17 +39,14 @@ To register a domain, pass contacts info and other required data:
      'e_mail'              => 'ncc@test.ru',
      'code'                => '789012345678' # ИНН
     )
-`
 
 
 To renew a domain, specify period and service_id (you received service_id after domain registration):
 
-`
     @api.domain_renew(
      'period'     => 1,
      'service_id' => 123456
     )
-`
 
 ---
 
