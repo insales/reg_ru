@@ -3,7 +3,7 @@ RegRu
 
 Ruby wrapper for [reg.ru API](http://www.reg.ru/reseller/API2-tech "reg.ru API").
 
-Example
+Usage
 =======
 
 Specify your login and password:
