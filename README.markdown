@@ -48,6 +48,12 @@ To renew a domain, specify period and service_id (you received service_id after 
      'service_id' => 123456
     )
 
+Authors
+=======
+
+* [Vladimir Bedarev](mailto:bedarev.vladimir@gmail.com "Vladimir Bedarev")
+* [Dmitry Novotochinov](http://github.com/trybeee "Dmitry Novotochinov")
+
 ---
 
 2010 InSales LLC, released under the MIT license
