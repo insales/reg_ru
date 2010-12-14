@@ -1,7 +1,7 @@
 RegRu
 =====
 
-Ruby wrapper for reg.ru API. ( [reg.ru API](http://www.reg.ru/reseller/API2-tech "reg.ru API")  )
+Ruby wrapper for [reg.ru API](http://www.reg.ru/reseller/API2-tech "reg.ru API").
 
 Example
 =======
