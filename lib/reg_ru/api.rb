@@ -69,6 +69,17 @@ module RegRu
       is_renew_success?
     end
 
+    # Check domain's availability to register. Currently supports checking only one domain name at a time. 
+    # Returns true if domain is available.
+    def domain_check(name)
+      options = { "domains" => [ {"dname" => name} ] }
+      request_v2("domain", "check", options)
+      if is_success?
+        record = response["answer"]["domains"].first
+        record && record["error_code"].nil? && record["result"] == "Available"
+      end
+    end
+
     def zone_add(options)
       request_v1('zone_add_rr',options)
     end

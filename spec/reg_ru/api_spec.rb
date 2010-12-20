@@ -81,4 +81,26 @@ describe RegRu::Api do
       result.should_not be_nil
     end
   end
+
+  describe "#domain_check" do
+    before do
+      response = {
+          "answer" => {
+              "domains" => [
+                  {
+                      "dname"      => 'megashop.ru',
+                      "result"     => 'Available',
+                  },
+              ]
+          },
+          "result" => 'success'
+      }
+      subject.stub!(:response).and_return response
+    end
+    it "works" do
+      result = subject.domain_check("megashop.ru")
+      subject.is_success?.should be_true
+      result.should be_true
+    end
+  end
 end
