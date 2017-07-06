@@ -4,7 +4,7 @@ require File.dirname(__FILE__) + '/posts_data'
 module RegRu
   class MissingCaCertFile < StandardError; end
   class Api
-    include RegRu::PostsData 
+    include RegRu::PostsData
 
     POSITIVE_RENEW_ANSWER_STATUSES = ["renew_success", "only_bill_created"].freeze
     REQUIRED_FIELDS_FOR_RENEW = ["period", "service_id"].freeze
@@ -12,7 +12,7 @@ module RegRu
     # allows to define login, password for different environments: production, test, etc.
     cattr_accessor :login, :password, :ca_cert_path
 
-    attr_accessor :response, :login, :password
+    attr_accessor :response, :login, :password, :logger
 
     def initialize(login=nil, password=nil)
       unless RegRu::Api.ca_cert_path && File.exists?(RegRu::Api.ca_cert_path)
@@ -49,7 +49,7 @@ module RegRu
       request_v2('domain','create', options)
       if is_success?
         response["answer"]["service_id"]
-      end 
+      end
     end
 
     # Renews a domain. Returns true if success. Service_id and Period are required arguments.
@@ -69,7 +69,12 @@ module RegRu
       is_renew_success?
     end
 
-    # Check domain's availability to register. Currently supports checking only one domain name at a time. 
+    def domain_service_id(options)
+      request_v2('domain', 'nop', options)
+      return response["answer"]["service_id"] if is_success?
+    end
+
+    # Check domain's availability to register. Currently supports checking only one domain name at a time.
     # Returns true if domain is available.
     def domain_check(name)
       options = { "domains" => [ {"dname" => name} ] }
@@ -80,12 +85,24 @@ module RegRu
       end
     end
 
+    def service_get_info(options)
+      request_v2('service', 'get_info', options)
+      return response['answer']['services'].first if is_success?
+    end
+
     def zone_add(options)
       request_v1('zone_add_rr',options)
     end
-    
+
     def zone_rm(options)
       request_v1('zone_rm_rr',options)
+    end
+
+    def get_info(domains)
+      request_v2('service', 'get_info',
+        input_format: 'json',
+        input_data: {domains: domains.map{ |domain| { dname: domain } } }.to_json
+      )["answer"]["services"].index_by {|e| e["dname"].mb_chars.downcase.to_s}
     end
 
     def is_success?
@@ -96,7 +113,7 @@ module RegRu
     def is_renew_success?
       is_success? && POSITIVE_RENEW_ANSWER_STATUSES.include?(response["answer"]["status"])
     end
-    
+
     def error_detail
       response["error_params"] && response["error_params"]["error_detail"]
     end
@@ -122,7 +139,9 @@ module RegRu
       data[:username]      = login
       data[:extended_message_lang] = 'ru'
       data[:password]      = password
-      answer = ssl_post("https://www.reg.ru/api/regru",data.to_s)
+      url = "https://api.reg.ru/api/regru"
+      answer = ssl_post(url, data.to_s)
+      logger.try {|l| l.call("request_v1: #{url} #{data.inspect} response: #{answer.inspect}") }
       self.response = {"result" => answer.match(/\ASuccess:/) ? "success" : "errors"}
       response["error_code"] = answer unless is_success?
     end
@@ -134,12 +153,18 @@ module RegRu
     def request_v2(group,command,options={})
       data = PostData.new
       data.merge!(options)
-      data[:input_format]  = 'plain'
+      data[:input_format]  ||= 'plain'
       data[:output_format] = 'json'
       data[:username]      = login
       data[:lang]          = 'ru'
       data[:password]      = password
-      self.response = ::JSON.parse(ssl_post("https://api.reg.ru/api/regru2/#{group}/#{command}",data.to_s))
+      url = "https://api.reg.ru/api/regru2/#{group}/#{command}"
+      self.response = ::JSON.parse(ssl_post(url, data.to_s))
+      if !is_success? && error_code == "ACCESS_DENIED_FROM_IP"
+        raise "Добавьте в личном кабинете рег-ру IP: #{response["error_params"]}: Личный кабинет => Насройки безопасности => Ограничения доступа к аккаунту"
+      end
+      logger.try {|l| l.call("request_v2: #{url} #{data.inspect} response: #{self.response.inspect}") }
+      self.response
     end
 
     # TODO: Needs rework
@@ -150,5 +175,5 @@ module RegRu
       message_digest = "#{options.keys.sort_by(&:to_s).map{|name| options[name]}.join(':')}:#{secretkey_hash}"
       Digest::SHA1.hexdigest(message_digest)
     end
-  end  
+  end
 end

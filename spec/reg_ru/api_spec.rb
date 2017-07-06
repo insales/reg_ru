@@ -13,7 +13,7 @@ describe RegRu::Api do
     subject.stub!(:request_v1)
     subject.stub!(:response).and_return(
       {
-        "answer" => {"service_id" => 12345, "period" => 1}, 
+        "answer" => {"service_id" => 12345, "period" => 1},
         "result" => "success"
       }
     )
