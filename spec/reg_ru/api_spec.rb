@@ -9,9 +9,9 @@ describe RegRu::Api do
   end
 
   before do
-    subject.stub!(:request_v2)
-    subject.stub!(:request_v1)
-    subject.stub!(:response).and_return(
+    subject.stub(:request_v2)
+    subject.stub(:request_v1)
+    subject.stub(:response).and_return(
       {
         "answer" => {"service_id" => 12345, "period" => 1},
         "result" => "success"
@@ -28,7 +28,7 @@ describe RegRu::Api do
   describe "#domain_renew" do
     before do
       @response = { "answer" => {"service_id" => 12345, "period" => 1, "status" => "renew_success"}, "result" => "success" }
-      subject.stub!(:response).and_return @response
+      subject.stub(:response).and_return @response
     end
 
     it "checks argument" do
@@ -39,18 +39,18 @@ describe RegRu::Api do
 
     it "return true if success" do
       subject.domain_renew("service_id" => 12345, "period" => 1)
-      subject.is_renew_success?.should be_true
+      subject.is_renew_success?.should eq true
     end
 
     describe "#is_renew_success?" do
       it "verifies response status and renew status" do
         answer_ok_only_bill_created = @response.dup; answer_ok_only_bill_created["answer"]["status"] = "only_bill_created"
-        subject.stub!(:response).and_return answer_ok_only_bill_created
-        subject.is_renew_success?.should be_true
+        subject.stub(:response).and_return answer_ok_only_bill_created
+        subject.is_renew_success?.should eq true
 
         answer_bad = @response.dup; answer_bad["answer"]["status"] = "unknown"
-        subject.stub!(:response).and_return answer_bad
-        subject.is_renew_success?.should be_false
+        subject.stub(:response).and_return answer_bad
+        subject.is_renew_success?.should eq false
       end
     end
   end
@@ -77,7 +77,7 @@ describe RegRu::Api do
         'code'                => '789012345678'
       )
 
-      subject.is_success?.should be_true
+      subject.is_success?.should eq true
       result.should_not be_nil
     end
   end
@@ -95,12 +95,12 @@ describe RegRu::Api do
           },
           "result" => 'success'
       }
-      subject.stub!(:response).and_return response
+      subject.stub(:response).and_return response
     end
     it "works" do
       result = subject.domain_check("megashop.ru")
-      subject.is_success?.should be_true
-      result.should be_true
+      subject.is_success?.should eq true
+      result.should eq true
     end
   end
 end
