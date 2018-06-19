@@ -1,5 +1,5 @@
 require 'digest/sha1'
-require File.dirname(__FILE__) + '/posts_data'
+require 'reg_ru/posts_data'
 
 module RegRu
   class MissingCaCertFile < StandardError; end

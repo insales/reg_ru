@@ -1,6 +1,6 @@
-require File.dirname(__FILE__) + '/../../lib/reg_ru/api'
-require File.dirname(__FILE__) + '/../../lib/reg_ru/post_data'
-require File.dirname(__FILE__) + '/../../lib/reg_ru/posts_data'
+require 'reg_ru/api'
+require 'reg_ru/post_data'
+require 'reg_ru/posts_data'
 
 describe RegRu::Api do
   subject do
