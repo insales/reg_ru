@@ -2,6 +2,7 @@ require 'uri'
 require 'net/http'
 require 'net/https'
 require 'active_support'
+require 'active_support/core_ext/class/attribute'
 
 module RegRu #:nodoc:
   class ConnectionError < StandardError
@@ -16,7 +17,7 @@ module RegRu #:nodoc:
     READ_TIMEOUT = 60
 
     def self.included(base)
-      base.superclass_delegating_accessor :ssl_strict
+      base.class_attribute :ssl_strict, instance_writer: false
       base.ssl_strict = true
 
       base.class_attribute :pem_password
@@ -25,10 +26,10 @@ module RegRu #:nodoc:
       base.class_attribute :retry_safe
       base.retry_safe = false
 
-      base.superclass_delegating_accessor :open_timeout
+      base.class_attribute :open_timeout, instance_writer: false
       base.open_timeout = OPEN_TIMEOUT
 
-      base.superclass_delegating_accessor :read_timeout
+      base.class_attribute :read_timeout, instance_writer: false
       base.read_timeout = READ_TIMEOUT
     end
 

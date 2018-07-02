@@ -14,6 +14,8 @@ Gem::Specification.new do |s|
                     "spec/**/*"
                   ]
 
-  s.add_runtime_dependency 'actionpack'
   s.add_runtime_dependency 'activesupport'
+
+  s.add_development_dependency 'rake'
+  s.add_development_dependency 'rspec'
 end
