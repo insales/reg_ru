@@ -22,9 +22,6 @@ module RegRu
     attr_reader :response
 
     def initialize(login=nil, password=nil)
-      unless ca_cert_path && File.exists?(ca_cert_path)
-        raise MissingCaCertFile, "You should provide path to ca_cert.pem in RegRu::Api.ca_cert_path"
-      end
       self.login = login if login
       raise(ArgumentError, "Login is required") unless self.login
       self.password = password if password
@@ -196,8 +193,7 @@ module RegRu
       http.read_timeout = READ_TIMEOUT
       if uri.scheme == "https"
         http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-        http.ca_file = ca_cert_path
+        http.ca_file = ca_cert_path if ca_cert_path
       end
       http
     end

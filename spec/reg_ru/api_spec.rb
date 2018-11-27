@@ -1,10 +1,7 @@
 require 'reg_ru/api'
 
 describe RegRu::Api do
-  subject do
-    RegRu::Api.ca_cert_path = File.dirname(__FILE__) + '/cacert.pem'
-    @api = RegRu::Api.new('test','test')
-  end
+  subject { RegRu::Api.new('test','test') }
 
   before do
     subject.stub(:request_v2)
