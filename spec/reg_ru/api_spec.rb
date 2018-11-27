@@ -1,6 +1,4 @@
 require 'reg_ru/api'
-require 'reg_ru/post_data'
-require 'reg_ru/posts_data'
 
 describe RegRu::Api do
   subject do
@@ -21,7 +19,7 @@ describe RegRu::Api do
 
   describe "#required_fields_for_renew" do
     it "returns required fields" do
-      RegRu::Api.required_fields_for_renew.should == ["period", "service_id"]
+      RegRu::Api::REQUIRED_FIELDS_FOR_RENEW.should == ["period", "service_id"]
     end
   end
 

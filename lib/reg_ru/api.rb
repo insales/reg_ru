@@ -1,26 +1,34 @@
 require 'digest/sha1'
-require 'reg_ru/posts_data'
+require 'uri'
+require 'net/http'
+require 'net/https'
+
+require 'active_support/core_ext/class/attribute'
 
 module RegRu
   class MissingCaCertFile < StandardError; end
+
   class Api
-    include RegRu::PostsData
+    CONNECTION_ATTEMPTS = 3
+    OPEN_TIMEOUT = 60
+    READ_TIMEOUT = 60
 
     POSITIVE_RENEW_ANSWER_STATUSES = ["renew_success", "only_bill_created"].freeze
     REQUIRED_FIELDS_FOR_RENEW = ["period", "service_id"].freeze
 
-    # allows to define login, password for different environments: production, test, etc.
-    cattr_accessor :login, :password, :ca_cert_path
+    class_attribute :login, :password, :logger
+    class_attribute :ca_cert_path, instance_writer: false
 
-    attr_accessor :response, :login, :password, :logger
+    attr_reader :response
 
     def initialize(login=nil, password=nil)
-      unless RegRu::Api.ca_cert_path && File.exists?(RegRu::Api.ca_cert_path)
+      unless ca_cert_path && File.exists?(ca_cert_path)
         raise MissingCaCertFile, "You should provide path to ca_cert.pem in RegRu::Api.ca_cert_path"
       end
-
-      self.login = login || RegRu::Api.login || raise(ArgumentError, "Login is required")
-      self.password = password || RegRu::Api.password || raise(ArgumentError, "Password is required")
+      self.login = login if login
+      raise(ArgumentError, "Login is required") unless self.login
+      self.password = password if password
+      raise(ArgumentError, "Password is required") unless self.password
     end
 
     # Registers a domain. Returns service_id if success.
@@ -60,9 +68,9 @@ module RegRu
     # )
 
     def domain_renew(options)
-      if (options.keys & Api.required_fields_for_renew).size != Api.required_fields_for_renew.size
-        raise ArgumentError, \
-        "#{Api.required_fields_for_renew.join(', ')} should be provided in arguments hash. You provided only #{options.keys.join(', ')}"
+      required = REQUIRED_FIELDS_FOR_RENEW
+      if (required - options.keys).any?
+        raise ArgumentError, "#{required.join(', ')} are missing. Given: #{options.keys.join(', ')}"
       end
 
       request_v2('service', 'renew', options)
@@ -124,25 +132,20 @@ module RegRu
 
     protected
 
-    def self.required_fields_for_renew
-      REQUIRED_FIELDS_FOR_RENEW
-    end
-
     def test_v1
       request_v1('domain_check','domain_name' => 'domain.ru')
     end
 
     def request_v1(action,options={})
-      data = PostData.new
-      data.merge!(options)
-      data[:action]        = action
-      data[:username]      = login
-      data[:extended_message_lang] = 'ru'
-      data[:password]      = password
+      data = options.merge(
+        action: action,
+        username: login,
+        password: password,
+        extended_message_lang: 'ru',
+      )
       url = "https://api.reg.ru/api/regru"
-      answer = ssl_post(url, data.to_s)
-      logger.try {|l| l.call("request_v1: #{url} #{data.inspect} response: #{answer.inspect}") }
-      self.response = {"result" => answer.match(/\ASuccess:/) ? "success" : "errors"}
+      answer = ssl_post(url, data)
+      @response = {"result" => answer.match(/\ASuccess:/) ? "success" : "errors"}
       response["error_code"] = answer unless is_success?
     end
 
@@ -151,29 +154,52 @@ module RegRu
     end
 
     def request_v2(group,command,options={})
-      data = PostData.new
-      data.merge!(options)
+      data = options.merge(
+        output_format: 'json',
+        username: login,
+        password: password,
+        lang: 'ru',
+      )
       data[:input_format]  ||= 'plain'
-      data[:output_format] = 'json'
-      data[:username]      = login
-      data[:lang]          = 'ru'
-      data[:password]      = password
       url = "https://api.reg.ru/api/regru2/#{group}/#{command}"
-      self.response = ::JSON.parse(ssl_post(url, data.to_s))
+      @response = JSON.parse(ssl_post(url, data))
       if !is_success? && error_code == "ACCESS_DENIED_FROM_IP"
-        raise "Добавьте в личном кабинете рег-ру IP: #{response["error_params"]}: Личный кабинет => Насройки безопасности => Ограничения доступа к аккаунту"
+        raise "Добавьте в личном кабинете рег-ру IP: #{response["error_params"]}: " \
+          "Личный кабинет => Насройки безопасности => Ограничения доступа к аккаунту"
       end
-      logger.try {|l| l.call("request_v2: #{url} #{data.inspect} response: #{self.response.inspect}") }
-      self.response
+      response
     end
 
-    # TODO: Needs rework
-    def signature(options,command)
-      options[:timestamp] = Time.now.to_i
-      options[:action] = command
-      secretkey_hash = Digest::SHA1.hexdigest(password)
-      message_digest = "#{options.keys.sort_by(&:to_s).map{|name| options[name]}.join(':')}:#{secretkey_hash}"
-      Digest::SHA1.hexdigest(message_digest)
+    def ssl_post(url, data)
+      logger&.debug { "RegRu::Api#ssl_post request: #{url} #{data}" }
+      data = URI.encode_www_form(data) if data && !data.is_a?(String)
+      uri = URI.parse(url)
+      http = build_http_client(uri)
+      attempts = CONNECTION_ATTEMPTS
+      begin
+        response = http.post(uri.request_uri, data).body
+        logger&.debug { "RegRu::Api#ssl_post response: #{response}" }
+        response
+      rescue Errno::ECONNREFUSED => e
+        attempts -= 1
+        logger&.error { "RegRu::Api#ssl_post error: #{e}, attempts remain: #{attempts}" }
+        retry if attempts.positive?
+      rescue
+        logger&.error { "RegRu::Api#ssl_post error: #{e}" }
+        raise
+      end
+    end
+
+    def build_http_client(uri)
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = OPEN_TIMEOUT
+      http.read_timeout = READ_TIMEOUT
+      if uri.scheme == "https"
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        http.ca_file = ca_cert_path
+      end
+      http
     end
   end
 end
