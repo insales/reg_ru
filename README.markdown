@@ -9,14 +9,14 @@ Usage
 Specify your login and password:
 
 `@api = RegRu::Api.new('login', 'password')`
-  or 
+  or
     RegRu::Api.login = 'login'
     RegRu::Api.password = 'password'
     @api = RegRu::Api.new
 
-Then you must set path to ca_cert.pem:
+Optionally provide custom ca_cert for Net::HTTP:
 
-`RegRu::Api.ca_cert_path = '/path/to/cacert.pem'`
+    RegRu::Api.ca_cert_path = '/path/to/cacert.pem'
 
 To register a domain, pass contacts info and other required data:
 
