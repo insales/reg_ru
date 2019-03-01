@@ -90,6 +90,10 @@ module RegRu
       end
     end
 
+    def domain_suggest(options)
+      request_v2("domain", "get_suggest", options)
+    end
+
     def service_get_info(options)
       request_v2('service', 'get_info', options)
       return response['answer']['services'].first if is_success?
