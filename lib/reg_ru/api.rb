@@ -172,14 +172,14 @@ module RegRu
     end
 
     def ssl_post(url, data)
-      logger&.debug { "RegRu::Api#ssl_post request: #{url} #{data}" }
+      logger&.info { "RegRu::Api#ssl_post request: #{url} #{data.except(:password)}" }
       data = URI.encode_www_form(data) if data && !data.is_a?(String)
       uri = URI.parse(url)
       http = build_http_client(uri)
       attempts = CONNECTION_ATTEMPTS
       begin
         response = http.post(uri.request_uri, data).body
-        logger&.debug { "RegRu::Api#ssl_post response: #{response}" }
+        logger&.info { "RegRu::Api#ssl_post response: #{response}" }
         response
       rescue Errno::ECONNREFUSED => e
         attempts -= 1
