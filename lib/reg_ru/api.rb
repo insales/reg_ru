@@ -51,7 +51,7 @@ module RegRu
     # )
 
     def domain_create(options)
-      request_v2('domain','create', options)
+      request_v2('domain', 'create', options, %i[domain_name period])
       if is_success?
         response["answer"]["service_id"]
       end
@@ -154,7 +154,7 @@ module RegRu
       request_v2('domain', 'nop', 'domain_name' => 'domain.ru')
     end
 
-    def request_v2(group,command,options={})
+    def request_v2(group, command, options = {}, log_only_fields = nil)
       data = options.merge(
         output_format: 'json',
         username: login,
@@ -162,8 +162,9 @@ module RegRu
         lang: 'ru',
       )
       data[:input_format]  ||= 'plain'
+      log_only_fields << :username if log_only_fields
       url = "https://api.reg.ru/api/regru2/#{group}/#{command}"
-      @response = JSON.parse(ssl_post(url, data))
+      @response = JSON.parse(ssl_post(url, data, log_only_fields))
       if !is_success? && error_code == "ACCESS_DENIED_FROM_IP"
         raise "Добавьте в личном кабинете рег-ру IP: #{response["error_params"]}: " \
           "Личный кабинет => Насройки безопасности => Ограничения доступа к аккаунту"
@@ -171,8 +172,9 @@ module RegRu
       response
     end
 
-    def ssl_post(url, data)
-      logger&.info { "RegRu::Api#ssl_post request: #{url} #{data.except(:password)}" }
+    def ssl_post(url, data, log_only_fields = nil)
+      log_data = log_only_fields ? data.only(*log_only_fields) : data.except(:password)
+      logger&.info { "RegRu::Api#ssl_post request: #{url} #{log_data}" }
       data = URI.encode_www_form(data) if data && !data.is_a?(String)
       uri = URI.parse(url)
       http = build_http_client(uri)
