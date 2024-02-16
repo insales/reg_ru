@@ -173,7 +173,7 @@ module RegRu
     end
 
     def ssl_post(url, data, log_only_fields = nil)
-      log_data = log_only_fields ? data.slice(*log_only_fields) : data.except(:password)
+      log_data = log_only_fields ? data.transform_keys(&:to_sym).slice(*log_only_fields) : data.except(:password)
       logger&.info { "RegRu::Api#ssl_post request: #{url} #{log_data}" }
       data = URI.encode_www_form(data) if data && !data.is_a?(String)
       uri = URI.parse(url)
