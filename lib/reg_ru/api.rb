@@ -114,6 +114,10 @@ module RegRu
       )["answer"]["services"].index_by {|e| e["dname"].mb_chars.downcase.to_s}
     end
 
+    def get_prices(currency: 'RUR')
+      request_v2('domain', 'get_prices', { currency: currency })
+    end
+
     def is_success?
       response["result"] == "success"
     end
