@@ -111,7 +111,7 @@ module RegRu
       request_v2('service', 'get_info',
         input_format: 'json',
         input_data: {domains: domains.map{ |domain| { dname: domain } } }.to_json
-      )["answer"]["services"].index_by {|e| e["dname"].mb_chars.downcase.to_s}
+      )["answer"]["services"].index_by { |service| service["dname"].downcase }
     end
 
     def get_prices(currency: 'RUR')
