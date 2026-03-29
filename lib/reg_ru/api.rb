@@ -94,6 +94,14 @@ module RegRu
       request_v2("domain", "get_suggest", options)
     end
 
+    def domain_update_contacts(options)
+      request_v2('domain', 'update_contacts', options)
+    end
+
+    def domain_update_nss(options)
+      request_v2('domain', 'update_nss', options)
+    end
+
     def service_get_info(options)
       request_v2('service', 'get_info', options)
       return response['answer']['services'].first if is_success?
@@ -116,6 +124,9 @@ module RegRu
 
     def get_prices(currency: 'RUR')
       request_v2('domain', 'get_prices', { currency: currency })
+      if is_success?
+        response["answer"]["prices"]
+      end
     end
 
     def is_success?
